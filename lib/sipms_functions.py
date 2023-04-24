@@ -39,19 +39,15 @@ def data2npy(folder, pcbs_labels, sipm_labels, pins_labels, sipm_number=6, pins_
     pins_values_rev = np.empty( pins_number*len(names) *mode)                    #solo reverso/solo altura pines
     
     names_sipms = []
-    for i in range(sipm_number):
-        names_sipms.append("SiPM #%i"%(i+1))
+    for i in range(sipm_number): names_sipms.append("SiPM #%i"%(i+1))
     if debug: print(names_sipms)
 
     names_pins = []
-    for i in range(pins_number):
-        names_pins.append("Pin #%i"%(i+1))
+    for i in range(pins_number): names_pins.append("Pin #%i"%(i+1))
     if debug: print(names_pins)
 
-    if mode == 1:
-        print("\nYou have entered \"mode=1\", meaning that each bunch of 6xSiPMs is stored in ONE .xlsx")
-    else:
-        print("\nYou have entered \"mode=%i\", meaning that in each .xlsx you stored %i bunches of 6xSiPMs"%(mode,mode))
+    if mode == 1: print("\nYou have entered \"mode=1\", meaning that each bunch of 6xSiPMs is stored in ONE .xlsx")
+    else:         print("\nYou have entered \"mode=%i\", meaning that in each .xlsx you stored %i bunches of 6xSiPMs"%(mode,mode))
 
     for n in np.arange(len(names)): # Distintos archivos --> Placas PCBs
         ##PREVIOUS CONFIGURATION##
@@ -62,30 +58,41 @@ def data2npy(folder, pcbs_labels, sipm_labels, pins_labels, sipm_number=6, pins_
         worksheet_anv = workbooks_anv.sheet_by_index(0)
         worksheet_rev = workbooks_rev.sheet_by_index(0)
 
+        if debug: print("\n----- LOCATION:", folder + names[n] + '/' + names[n], "-----")
+
         # PCB #
+        if debug: print("\nPCB")
         for l in np.arange(len(pcbs_labels)):    # Etiquetas x16
             for m in range(mode):                # Entries in each file
                 pcbs_values[n*mode+m,l] = worksheet_anv.cell(3+l+m*197,11).value #cell allocation in xlsx file
+                if debug: print("row: ", 3+l+m*197, "; value: ", worksheet_anv.cell(3+l+m*197,11).value)
                #pcbs_values[0-(names*mode*#LABELS),0-16] = cell(COLUMNA: 3+l(ETIQUETA(0-16))+m*197(SEPARACION ENTRE MEDIDAS), FILA: 11)
             
         # SiPMs #
+        if debug: print("\nSiPMs")
         for l in np.arange(len(sipm_labels)):    # Etiquetas x6
             for m in range(mode):                # Entries in each file
                 for j in np.arange(sipm_number): # SiPMs x6
                     sipm_values[j+m*sipm_number+n*(sipm_number*(mode-1)+sipm_number),l] = worksheet_anv.cell(3+l+j*8+m*197,14).value #cell allocation in xlsx file
+                    if debug: print("row: ", 3+l+j*8+m*197, "; value: ", worksheet_anv.cell(3+l+j*8+m*197,14).value)
                    #sipm_values[0-(names*mode*#SIPMS*#LABELS),0-6] = cell(COLUMNA: 3+l(ETIQUETA(0-6))+j*8(DISTANCIA ENTRE SIPMS)+m*197(SEPARACION ENTRE MEDIDAS), FILA: 14)
 
         # Pins anverso #
+        if debug: print("\nPins anverso")
         for l in np.arange(len(pins_labels)):    # Etiquetas x3
             for m in range(mode):                # Entries in each file
                 for j in np.arange(pins_number): # Pins x8
                     pins_values_anv[j+m*pins_number+n*(pins_number*(mode-1)+pins_number),l] = worksheet_anv.cell(3+l+j*5+m*197,17).value #cell allocation in xlsx file
+                    if debug: print("row: ", 3+l+j*5+m*197, "; value: ", worksheet_anv.cell(3+l+j*5+m*197,17).value)
+
                    #pins_values_anv[0-(names*mode**#PINS*#LABELS),0-8] = cell(COLUMNA: 3+l(ETIQUETA(0-3))+j*5(DISTANCIA ENTRE PINS)+m*197(SEPARACION ENTRE MEDIDAS), FILA: 17)
 
         # Pins reverso #
+        if debug: print("\nPins reverso")
         for m in range(mode):                    # Entries in each file
             for j in np.arange(pins_number):     # Pins x8
                 pins_values_rev[j+m*pins_number+n*(pins_number*(mode-1)+pins_number)] = worksheet_rev.cell(3+j+m*24,11).value # Etiqueta x1 (sin loop) REVERSO
+                if debug: print("row: ", 3+j+m*24, "; value: ", worksheet_rev.cell(3+j+m*24,11).value)
                #pins_values_rev[0-(names*mode*#PINS)] = cell(COLUMNA: 3+l(ETIQUETA(0-6))+j(0-8 pins)+m*24(SEPARACION ENTRE MEDIDAS), FILA: 11)
 
 
