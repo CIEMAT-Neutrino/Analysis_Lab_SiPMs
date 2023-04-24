@@ -2,10 +2,10 @@
 Repository with the notebooks used to analyse the data extracted from the SiPMs dimensions. Also some tips on how to plot IR02 control parameters.
 
 Expected structure of the repository:
-\n - data: data extracted from the SiPMs (i.e .xlsx files)                  [included in the .gitignore you will only see your local files]
-\n - fit_data: grouped data from the SiPMs + statistics (i.e .txt files)    [included in the .gitignore you will only see your local files]
-\n - notebooks: notebooks used to analyse the data
-\n - lib: libraries with the used functions
+  * data: data extracted from the SiPMs (i.e .xlsx files)                  [included in the .gitignore you will only see your local files]
+  * fit_data: grouped data from the SiPMs + statistics (i.e .txt files)    [included in the .gitignore you will only see your local files]
+  * notebooks: notebooks used to analyse the data
+  * lib: libraries with the used functions
 
 
 RUN:
