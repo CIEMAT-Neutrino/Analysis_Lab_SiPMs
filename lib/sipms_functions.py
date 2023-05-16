@@ -32,11 +32,12 @@ def npy2df(values):
 
 def data2npy(folder, pcbs_labels, sipm_labels, pins_labels, sipm_number=6, pins_number=8, mode=1, debug=False):
     print("\nWARNING: the configuration for the xlsx is hard-coded, any change in the naming or how information is distributed in the cells WILL NEED to be CHANGED in the function")
+    
     names           = os.listdir(folder)
-    pcbs_values     = np.empty([len(names)*mode,              len(pcbs_labels)]) #solo anverso
-    sipm_values     = np.empty([sipm_number*len(names)*mode,  len(sipm_labels)]) #solo anverso
-    pins_values_anv = np.empty([pins_number*len(names) *mode, len(pins_labels)]) #solo anverso
-    pins_values_rev = np.empty( pins_number*len(names) *mode)                    #solo reverso/solo altura pines
+    pcbs_values     = np.empty([len(names)*mode,              len(pcbs_labels)+1], dtype=object) #solo anverso
+    sipm_values     = np.empty([sipm_number*len(names)*mode,  len(sipm_labels)+1], dtype=object) #solo anverso
+    pins_values_anv = np.empty([pins_number*len(names) *mode, len(pins_labels)+1], dtype=object) #solo anverso
+    pins_values_rev = np.empty([pins_number*len(names) *mode, 2], dtype=object)                #solo reverso/solo altura pines
     
     names_sipms = []
     for i in range(sipm_number): names_sipms.append("SiPM #%i"%(i+1))
@@ -49,6 +50,7 @@ def data2npy(folder, pcbs_labels, sipm_labels, pins_labels, sipm_number=6, pins_
     if mode == 1: print("\nYou have entered \"mode=1\", meaning that each bunch of 6xSiPMs is stored in ONE .xlsx")
     else:         print("\nYou have entered \"mode=%i\", meaning that in each .xlsx you stored %i bunches of 6xSiPMs"%(mode,mode))
 
+    pcbs_ids = []; sipm_ids = []; pins_anv_ids = []; pins_rev_ids = []
     for n in np.arange(len(names)): # Distintos archivos --> Placas PCBs
         ##PREVIOUS CONFIGURATION##
         # workbook_anv  = xlrd.open_workbook(folder + names[n] + '/' + names[n].replace("Nº","") + '_anverso_1.xlsx')
@@ -60,6 +62,12 @@ def data2npy(folder, pcbs_labels, sipm_labels, pins_labels, sipm_number=6, pins_
 
         if debug: print("\n----- LOCATION:", folder + names[n] + '/' + names[n], "-----")
 
+
+        serial_number = [];
+        for m in range(mode): serial_number.append([int(worksheet_anv.cell(2+m,20).value)])
+        serial_number = list(np.concatenate(serial_number).flat)
+
+
         # PCB #
         if debug: print("\nPCB")
         for l in np.arange(len(pcbs_labels)):    # Etiquetas x16
@@ -67,15 +75,17 @@ def data2npy(folder, pcbs_labels, sipm_labels, pins_labels, sipm_number=6, pins_
                 pcbs_values[n*mode+m,l] = worksheet_anv.cell(3+l+m*197,11).value #cell allocation in xlsx file
                 if debug: print("row: ", 3+l+m*197, "; value: ", worksheet_anv.cell(3+l+m*197,11).value)
                #pcbs_values[0-(names*mode*#LABELS),0-16] = cell(COLUMNA: 3+l(ETIQUETA(0-16))+m*197(SEPARACION ENTRE MEDIDAS), FILA: 11)
-            
+        pcbs_ids.append([str(names[n])+"_ID"+str(sn) for sn in serial_number])
+
         # SiPMs #
         if debug: print("\nSiPMs")
         for l in np.arange(len(sipm_labels)):    # Etiquetas x6
-            for m in range(mode):                # Entries in each file
+            for m in range(mode): 
                 for j in np.arange(sipm_number): # SiPMs x6
                     sipm_values[j+m*sipm_number+n*(sipm_number*(mode-1)+sipm_number),l] = worksheet_anv.cell(3+l+j*8+m*197,14).value #cell allocation in xlsx file
                     if debug: print("row: ", 3+l+j*8+m*197, "; value: ", worksheet_anv.cell(3+l+j*8+m*197,14).value)
                    #sipm_values[0-(names*mode*#SIPMS*#LABELS),0-6] = cell(COLUMNA: 3+l(ETIQUETA(0-6))+j*8(DISTANCIA ENTRE SIPMS)+m*197(SEPARACION ENTRE MEDIDAS), FILA: 14)
+        sipm_ids.append([str(names[n])+"_ID"+str(sn) for sn in [i for i in serial_number for j in range(sipm_number)]])
 
         # Pins anverso #
         if debug: print("\nPins anverso")
@@ -84,17 +94,23 @@ def data2npy(folder, pcbs_labels, sipm_labels, pins_labels, sipm_number=6, pins_
                 for j in np.arange(pins_number): # Pins x8
                     pins_values_anv[j+m*pins_number+n*(pins_number*(mode-1)+pins_number),l] = worksheet_anv.cell(3+l+j*5+m*197,17).value #cell allocation in xlsx file
                     if debug: print("row: ", 3+l+j*5+m*197, "; value: ", worksheet_anv.cell(3+l+j*5+m*197,17).value)
-
                    #pins_values_anv[0-(names*mode**#PINS*#LABELS),0-8] = cell(COLUMNA: 3+l(ETIQUETA(0-3))+j*5(DISTANCIA ENTRE PINS)+m*197(SEPARACION ENTRE MEDIDAS), FILA: 17)
+        pins_anv_ids.append([str(names[n])+"_ID"+str(sn) for sn in [i for i in serial_number for j in range(pins_number)]])
+
 
         # Pins reverso #
         if debug: print("\nPins reverso")
         for m in range(mode):                    # Entries in each file
             for j in np.arange(pins_number):     # Pins x8
-                pins_values_rev[j+m*pins_number+n*(pins_number*(mode-1)+pins_number)] = worksheet_rev.cell(3+j+m*24,11).value # Etiqueta x1 (sin loop) REVERSO
+                pins_values_rev[j+m*pins_number+n*(pins_number*(mode-1)+pins_number),0] = worksheet_rev.cell(3+j+m*24,11).value # Etiqueta x1 (sin loop) REVERSO
                 if debug: print("row: ", 3+j+m*24, "; value: ", worksheet_rev.cell(3+j+m*24,11).value)
                #pins_values_rev[0-(names*mode*#PINS)] = cell(COLUMNA: 3+l(ETIQUETA(0-6))+j(0-8 pins)+m*24(SEPARACION ENTRE MEDIDAS), FILA: 11)
+        pins_rev_ids.append([str(names[n])+"_ID"+str(sn) for sn in [i for i in serial_number for j in range(pins_number)]])
 
+    pcbs_values[:,-1] = list(np.concatenate(pcbs_ids).flat)
+    sipm_values[:,-1] = list(np.concatenate(sipm_ids).flat)
+    pins_values_anv[:,-1] = list(np.concatenate(pins_anv_ids).flat)
+    pins_values_rev[:,-1] = list(np.concatenate(pins_rev_ids).flat)
 
     print("\nCHECK DIMENSIONS:")
     print("Files x Bunches:",len(pcbs_values))
@@ -168,9 +184,9 @@ def plotitos(title, xlabel, ylabel, df, df_mean, columns, colors, bars =[], deci
             media_std_1 = str(np.round(df_mean[columns]['Mean'],decimales))+ r"$\pm$" +str(np.round(df_mean[columns]['STD'],decimales))
             ax[x[i],y[i]].set_title(b)
             ax[x[i],y[i]].hist(df.loc[b][columns])
-            ax[x[i],y[i]].axvline(np.round(df_mean[columns]['Mean'],decimales), color=colors[1])
-            ax[x[i],y[i]].axvline(np.round(df_mean[columns]['Mean'],decimales)-np.round(df_mean[columns]['STD'],decimales), color=colors[2], linestyle='dashed')
-            ax[x[i],y[i]].axvline(np.round(df_mean[columns]['Mean'],decimales)+np.round(df_mean[columns]['STD'],decimales), color=colors[2], linestyle='dashed')
+            if colors[1] != None: ax[x[i],y[i]].axvline(np.round(df_mean[columns]['Mean'],decimales), color=colors[1])
+            if colors[2] != None: ax[x[i],y[i]].axvline(np.round(df_mean[columns]['Mean'],decimales)-np.round(df_mean[columns]['STD'],decimales), color=colors[2], linestyle='dashed')
+            if colors[2] != None: ax[x[i],y[i]].axvline(np.round(df_mean[columns]['Mean'],decimales)+np.round(df_mean[columns]['STD'],decimales), color=colors[2], linestyle='dashed')
             ax[x[i],y[i]].text(right, top, 'Mean = ' + media_std_1, horizontalalignment='right', verticalalignment='bottom', transform=ax[x[i],y[i]].transAxes)
     
     fig.suptitle(title)
