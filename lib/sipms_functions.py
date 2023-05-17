@@ -114,9 +114,9 @@ def data2npy(folder, pcbs_labels, sipm_labels, pins_labels, sipm_number=6, pins_
 
     print("\nCHECK DIMENSIONS:")
     print("Files x Bunches:",len(pcbs_values))
-    print("PCBs:",len(pcbs_values[0])*len(pcbs_values))
-    print("SiPM:",len(sipm_values[0])*len(sipm_values))
-    print("PIN_ANV:",len(pins_values_anv[0])*len(pins_values_anv))
+    print("PCBs:",len(pcbs_values))
+    print("SiPM:",len(sipm_values))
+    print("PIN_ANV:",len(pins_values_anv))
     print("PIN_REV:",len(pins_values_rev))
 
     return pcbs_values, sipm_values, pins_values_rev, pins_values_anv
@@ -194,3 +194,29 @@ def plotitos(title, xlabel, ylabel, df, df_mean, columns, colors, bars =[], deci
     fig.supylabel(ylabel)
 
     plt.show()
+
+import plotly.express as px
+import plotly.offline       as pyoff
+
+def custom_legend_name(fig_px,new_names):
+    for i, new_name in enumerate(new_names):
+        fig_px.data[i].name = new_name
+    return fig_px
+
+def custom_plotly_layout(fig_px, xaxis_title="", yaxis_title="", title="",barmode="stack"):
+    # fig_px.update_layout( updatemenus=[ dict( buttons=list([ dict(args=[{"xaxis.type": "linear", "yaxis.type": "linear"}], label="LinearXY", method="relayout"),
+    #                                                          dict(args=[{"xaxis.type": "log", "yaxis.type": "log"}],       label="LogXY",    method="relayout"),
+    #                                                          dict(args=[{"xaxis.type": "linear", "yaxis.type": "log"}],    label="LogY",     method="relayout"),
+    #                                                          dict( args=[{"xaxis.type": "log", "yaxis.type": "linear"}],   label="LogX",     method="relayout") ]),
+    #                       direction="down", pad={"r": 10, "t": 10}, showactive=True, x=-0.1, xanchor="left", y=1.5, yanchor="top" ) ] )
+    fig_px.update_layout( template="presentation", title=title, xaxis_title=xaxis_title, yaxis_title=yaxis_title, barmode=barmode,
+                   font=dict(family="serif"), legend_title_text='', legend = dict(yanchor="top", xanchor="right", x = 0.99), showlegend=True)
+    fig_px.update_xaxes(showline=True,mirror=True,zeroline=False)
+    fig_px.update_yaxes(showline=True,mirror=True,zeroline=False)
+    return fig_px
+
+def show_html(fig_px):
+    return pyoff.plot(fig_px, include_mathjax='cdn')
+
+def save_html(fig_px,name):
+    return fig_px.write_html(name, include_mathjax = 'cdn')
