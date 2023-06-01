@@ -25,10 +25,25 @@ def df_display(values,labels, name,index="",terminal_output=False,save=False):
     if terminal_output: print("\n--------- %s ---------"%name); display(df)
     return df 
 
-def npy2df(values):
-    mean = values.mean(axis=0)
-    stds = values.std(axis=0)
-    return mean, stds
+def npy2df(df, per_label=[]):
+    mean = []; stds = []; maxs = []; mins = []
+    for label in df.columns:
+        if label in per_label:
+            print("Computing mean per index for label: ", label, "...")
+            aux_mean = []; aux_stds = []; aux_maxs = []; aux_mins = []
+            index = list(set(df.index)); index.sort()
+            for idx in index:
+                aux_mean.append(df[label].loc[idx].mean(axis=0))
+                aux_stds.append(df[label].loc[idx].std(axis=0))
+                aux_maxs.append(df[label].loc[idx].max(axis=0))
+                aux_mins.append(df[label].loc[idx].min(axis=0))
+            mean.append(aux_mean); stds.append(aux_stds); maxs.append(aux_maxs); mins.append(aux_mins)
+        else:
+            mean.append(df[label].mean(axis=0))
+            stds.append(df[label].std(axis=0))
+            maxs.append(df[label].max(axis=0))
+            mins.append(df[label].min(axis=0))
+    return mean, stds, maxs, mins
 
 def data2npy(folder, pcbs_labels, sipm_labels, pins_labels, sipm_number=6, pins_number=8, mode=1, debug=False):
     print("\nWARNING: the configuration for the xlsx is hard-coded, any change in the naming or how information is distributed in the cells WILL NEED to be CHANGED in the function")
@@ -143,6 +158,18 @@ def sanity_check(df_values,values):
 
     else: print("Great! All your entries are unique :)")
 
+def check_especifications(df_ids, df_mean, labels):
+    print("------------------------------------------------------------------------------------")       
+    for column in labels:
+        if (df_mean[column].loc["Theoretical"]) != None and type(df_mean[column].loc["Theoretical"]) != list:
+            limit1 = df_mean[column].loc["Theoretical"] - df_mean[column].loc["STD-"]
+            limit2 = df_mean[column].loc["Theoretical"] + df_mean[column].loc["STD+"]
+            df_weird = df_ids[[column,"IDs"]][(df_ids[column] < limit1) | (df_ids[column] > limit2)]
+
+            print("\nLimits in column %s: (%0.2f-%0.2f) "%(column,limit1,limit2))
+            if (len(df_weird) > 0):
+                print("ERROR (x%i) "%(len(df_weird)))
+                print(df_weird)
 
 
 ###################################################################
@@ -195,8 +222,10 @@ def plotitos(title, xlabel, ylabel, df, df_mean, columns, colors, bars =[], deci
 
     plt.show()
 
-import plotly.express as px
+import plotly.express       as px
 import plotly.offline       as pyoff
+import plotly.graph_objects as go
+
 
 def custom_legend_name(fig_px,new_names):
     for i, new_name in enumerate(new_names):
