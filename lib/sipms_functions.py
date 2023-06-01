@@ -159,17 +159,28 @@ def sanity_check(df_values,values):
     else: print("Great! All your entries are unique :)")
 
 def check_especifications(df_ids, df_mean, labels):
-    print("------------------------------------------------------------------------------------")       
     for column in labels:
         if (df_mean[column].loc["Theoretical"]) != None and type(df_mean[column].loc["Theoretical"]) != list:
             limit1 = df_mean[column].loc["Theoretical"] - df_mean[column].loc["STD-"]
             limit2 = df_mean[column].loc["Theoretical"] + df_mean[column].loc["STD+"]
             df_weird = df_ids[[column,"IDs"]][(df_ids[column] < limit1) | (df_ids[column] > limit2)]
-
             print("\nLimits in column %s: (%0.2f-%0.2f) "%(column,limit1,limit2))
             if (len(df_weird) > 0):
                 print("ERROR (x%i) "%(len(df_weird)))
                 print(df_weird)
+        if (df_mean[column].loc["Theoretical"]) != None and type(df_mean[column].loc["Theoretical"]) == list:
+            print("Especifications differ for each index in column %s: "%(column))
+            index = list(set(df_ids.index)); index.sort()
+            for i, idx in enumerate(index):
+                limit1 = df_mean[column].loc["Theoretical"][i] - df_mean[column].loc["STD-"][i]
+                limit2 = df_mean[column].loc["Theoretical"][i] + df_mean[column].loc["STD+"][i]
+                df_weird = df_ids.loc[idx][[column,"IDs"]][(df_ids.loc[idx][column] < limit1) | (df_ids.loc[idx][column] > limit2)]
+
+                print("\nLimits in column %s for index %s: (%0.2f-%0.2f) "%(column,idx,limit1,limit2))
+                if (len(df_weird) > 0):
+                    print("ERROR (x%i) "%(len(df_weird)))
+                    print(df_weird)
+    print("------------------------------------------------------------------------------------")       
 
 
 ###################################################################
@@ -226,6 +237,38 @@ import plotly.express       as px
 import plotly.offline       as pyoff
 import plotly.graph_objects as go
 
+def plotlytos(title, xlabel, ylabel, df, df_mean, column, colors, decimales=2, vline=100):
+
+    if type(df_mean[column]["Theoretical"]) != list:
+        th  = df_mean[column]["Theoretical"];  stdp = df_mean[column]["STD+"]; stdm = df_mean[column]["STD-"]
+        exp = df_mean[column]["Experimental"]; maxs = df_mean[column]["Max"];  mins = df_mean[column]["Min"]
+
+        fig = px.histogram(df, template="presentation", x=column,width=900, height=600)
+        fig.add_trace(go.Scatter(x=[None],      y = [None],    mode="lines", line=dict(dash="dash",color="orange", width=0), name="Min: %s mm"%str(np.round(mins,decimales))))
+        fig.add_trace(go.Scatter(x=[None],      y = [None],    mode="lines", line=dict(dash="dash",color="orange", width=0), name="Max: %s mm"%str(np.round(maxs,decimales))))
+        fig.add_trace(go.Scatter(x=[exp]*2,     y = [0,vline], mode="lines", line=dict(dash="dash",color=colors[2]), name="EXP:  %s mm"%str(np.round(exp,decimales))))
+        fig.add_trace(go.Scatter(x=[th+stdp]*2, y = [0,vline], mode="lines", line=dict(dash="dash",color=colors[1]), name="STD+: %s mm"%str(np.round(stdp,decimales))))
+        fig.add_trace(go.Scatter(x=[th]*2,      y = [0,vline], mode="lines", line=dict(dash="dash",color=colors[0]), name="TH:   %s mm"%str(np.round(th,decimales))))
+        fig.add_trace(go.Scatter(x=[th-stdm]*2, y = [0,vline], mode="lines", line=dict(dash="dash",color=colors[1]), name="STD-: %s mm"%str(np.round(stdm,decimales))))
+        custom_plotly_layout(fig, xaxis_title=xlabel, yaxis_title=ylabel, title=title)
+
+    else:
+        df2plot = df_mean.explode(column)
+        index = list(set(df.index)); index.sort()
+        for col in range(len((df_mean[column]["Theoretical"]))):
+            th  = df2plot[column]["Theoretical"][col];  stdp = df2plot[column]["STD+"][col]; stdm = df2plot[column]["STD-"][col]
+            exp = df2plot[column]["Experimental"][col]; maxs = df2plot[column]["Max"][col];  mins = df2plot[column]["Min"][col]
+
+            fig = px.histogram(df.loc[index[col]], x=column, template="presentation",width=900, height=600)
+            fig.add_trace(go.Scatter(x=[None],      y = [None],    mode="lines", line=dict(dash="dash",color="orange", width=0), name="Max: %s mm"%str(np.round(maxs,decimales))))
+            fig.add_trace(go.Scatter(x=[None],      y = [None],    mode="lines", line=dict(dash="dash",color="orange", width=0), name="Min: %s mm"%str(np.round(mins,decimales))))
+            fig.add_trace(go.Scatter(x=[exp]*2,     y = [0,vline], mode="lines", line=dict(dash="dash",color=colors[2]), name="EXP:  %s mm"%str(np.round(exp,decimales))))
+            fig.add_trace(go.Scatter(x=[th+stdp]*2, y = [0,vline], mode="lines", line=dict(dash="dash",color=colors[1]), name="STD+: %s mm"%str(np.round(stdp,decimales))))
+            fig.add_trace(go.Scatter(x=[th]*2,      y = [0,vline], mode="lines", line=dict(dash="dash",color=colors[0]), name="TH:   %s mm"%str(np.round(th,decimales))))
+            fig.add_trace(go.Scatter(x=[th-stdm]*2, y = [0,vline], mode="lines", line=dict(dash="dash",color=colors[1]), name="STD-: %s mm"%str(np.round(stdm,decimales))))
+            custom_plotly_layout(fig, xaxis_title=xlabel, yaxis_title=ylabel, title=str(index[col])+ " - " +title + " (L%i)"%(col+1)).show()
+    
+    return fig
 
 def custom_legend_name(fig_px,new_names):
     for i, new_name in enumerate(new_names):
