@@ -246,21 +246,32 @@ import plotly.express       as px
 import plotly.offline       as pyoff
 import plotly.graph_objects as go
 
-def plotlytos(title, xlabel, ylabel, df, df_mean, column, colors, decimales=2, vline=100, text_auto=True):
+def plotlytos(title, xlabel, ylabel, df, df_mean, column, colors, decimales=2, text_auto=True):
 
     if type(df_mean[column]["Theoretical"]) != list:
         th  = df_mean[column]["Theoretical"];  stdp = df_mean[column]["STD+"]; stdm = df_mean[column]["STD-"]
         exp = df_mean[column]["Experimental"]; maxs = df_mean[column]["Max"];  mins = df_mean[column]["Min"]
 
         fig = px.histogram(df, template="presentation", x=column, width=900, height=600, hover_data=[column, "IDs"],text_auto=text_auto)
+        histogram_trace = fig.data[0]; hist_values, _ = np.histogram(histogram_trace.x); max_height = np.max(hist_values)
+        vline = 1.4*max_height
+        if "burr" in title: vline = 0.6*max_height
+        
         if text_auto: fig.update_traces(hovertemplate = str(column) + ': %{x}' + '<br>' + "IDs: "+ df["IDs"] + '<extra></extra>')
         fig.add_trace(go.Scatter(x=[None],      y = [None],    mode="lines", line=dict(dash="dash",color="orange", width=0), name="Min: %s mm"%str(np.round(mins,decimales))))
         fig.add_trace(go.Scatter(x=[None],      y = [None],    mode="lines", line=dict(dash="dash",color="orange", width=0), name="Max: %s mm"%str(np.round(maxs,decimales))))
         fig.add_trace(go.Scatter(x=[exp]*2,     y = [0,vline], mode="lines", line=dict(color=colors[2],width=4), name="EXP:  %s mm"%str(np.round(exp,decimales))))
-        fig.add_trace(go.Scatter(x=[th+stdp]*2, y = [0,vline], mode="lines", line=dict(dash="dash",color=colors[1],width=4), name="STD+: %s mm"%str(np.round(stdp,decimales))))
+        fig.add_trace(go.Scatter(x=[th+stdp]*2, y = [0,vline], mode="lines", line=dict(dash="dash",color=colors[1],width=4), name="TOL+: %s mm"%str(np.round(stdp,decimales))))
         if "weld" not in title: fig.add_trace(go.Scatter(x=[th]*2,      y = [0,vline], mode="lines", line=dict(dash="dash",color=colors[0],width=4), name="TH:   %s mm"%str(np.round(th,decimales))))
-        if "weld" not in title: fig.add_trace(go.Scatter(x=[th-stdm]*2, y = [0,vline], mode="lines", line=dict(dash="dash",color=colors[1],width=4), name="STD-: %s mm"%str(np.round(stdm,decimales))))
+        if "weld" not in title: fig.add_trace(go.Scatter(x=[th-stdm]*2, y = [0,vline], mode="lines", line=dict(dash="dash",color=colors[1],width=4), name="TOL-: %s mm"%str(np.round(stdm,decimales))))
         custom_plotly_layout(fig, xaxis_title=xlabel, yaxis_title=ylabel, title=title)
+
+        xmin = 0.995*(th-stdm); xmax = 1.02*(th+stdp)
+        if th-stdm > min(df[column]): xmin=0.99*min(df[column])
+        if th+stdp < max(df[column]): xmax=1.04*max(df[column])
+        fig.update_layout(xaxis_range=[xmin, xmax])
+        fig.update_layout(yaxis_range=[0, vline])
+
 
     else:
         df2plot = df_mean.explode([column])
@@ -270,15 +281,26 @@ def plotlytos(title, xlabel, ylabel, df, df_mean, column, colors, decimales=2, v
             exp = df2plot[column]["Experimental"][col]; maxs = df2plot[column]["Max"][col];  mins = df2plot[column]["Min"][col]
 
             fig = px.histogram(df.loc[index[col]], x=column, template="presentation",width=900, height=600, hover_data=[df.loc[index[col]][column], df.loc[index[col]]["IDs"]],text_auto=text_auto)
+            histogram_trace = fig.data[0]; hist_values, hist_edges = np.histogram(histogram_trace.x); max_height = np.max(hist_values)
+            vline = 1.4*max_height
+            if "burr" in title: vline = 0.6*max_height
+
             if text_auto: fig.update_traces(hovertemplate = str(column) + ': %{x}' + '<br>' + "IDs: "+ df.loc[index[col]]["IDs"] + '<extra></extra>')
             fig.add_trace(go.Scatter(x=[None],      y = [None],    mode="lines", line=dict(dash="dash",color="orange", width=0), name="Max: %s mm"%str(np.round(maxs,decimales))))
             fig.add_trace(go.Scatter(x=[None],      y = [None],    mode="lines", line=dict(dash="dash",color="orange", width=0), name="Min: %s mm"%str(np.round(mins,decimales))))
             fig.add_trace(go.Scatter(x=[exp]*2,     y = [0,vline], mode="lines", line=dict(color=colors[2],width=4), name="EXP:  %s mm"%str(np.round(exp,decimales))))
-            fig.add_trace(go.Scatter(x=[th+stdp]*2, y = [0,vline], mode="lines", line=dict(dash="dash",color=colors[1],width=4), name="STD+: %s mm"%str(np.round(stdp,decimales))))
+            fig.add_trace(go.Scatter(x=[th+stdp]*2, y = [0,vline], mode="lines", line=dict(dash="dash",color=colors[1],width=4), name="TOL+: %s mm"%str(np.round(stdp,decimales))))
             fig.add_trace(go.Scatter(x=[th]*2,      y = [0,vline], mode="lines", line=dict(dash="dash",color=colors[0],width=4), name="TH:   %s mm"%str(np.round(th,decimales))))
-            fig.add_trace(go.Scatter(x=[th-stdm]*2, y = [0,vline], mode="lines", line=dict(dash="dash",color=colors[1],width=4), name="STD-: %s mm"%str(np.round(stdm,decimales))))
+            fig.add_trace(go.Scatter(x=[th-stdm]*2, y = [0,vline], mode="lines", line=dict(dash="dash",color=colors[1],width=4), name="TOL-: %s mm"%str(np.round(stdm,decimales))))
             custom_plotly_layout(fig, xaxis_title=xlabel, yaxis_title=ylabel, title=str(index[col])+ " - " +title + " (L%i)"%(col+1)).show()
-    
+            
+            xmin = 0.995*(th-stdm); xmax = 1.02*(th+stdp)
+            if th-stdm > min(df[column]): xmin=0.99*min(df[column])
+            if th+stdp < max(df[column]): xmax=1.04*max(df[column])
+            fig.update_layout(xaxis_range=[xmin, xmax])
+            fig.update_layout(yaxis_range=[0, vline])
+
+
     return fig
 
 def custom_legend_name(fig_px,new_names):
