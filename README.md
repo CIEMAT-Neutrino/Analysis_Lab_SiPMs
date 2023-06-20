@@ -16,3 +16,10 @@ sh setup.sh
 to install packages and create fit_data (data folder is assumed to exist, if not create it)
 
 Open the notebooks and run the cells. You can save the output in the fit_data folder and you will get histograms at the end of the notebook with the information.
+
+## LICENSE
+[MIT](https://choosealicense.com/licenses/mit/)
+
+## Authors (alphabetical order, please insert your name here if you contribute to this project)
+
+* [**Pérez-Molina, Laura**](https://github.com/rodralva)
