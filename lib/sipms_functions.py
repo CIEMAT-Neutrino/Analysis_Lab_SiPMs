@@ -212,10 +212,9 @@ def check_especifications(df_ids, df_mean, labels, filename=""):
     Returns:
         - prints the indexes of the rows that are not within the specifications
     '''
-
     if filename != "": f = open(filename+'.txt', 'w')
     for column in labels:
-        if (df_mean[column].loc["Theoretical"]) != None and type(df_mean[column].loc["Theoretical"]) != list:
+        if (df_mean[column].loc["Theoretical"]) != None  and type(df_mean[column].loc["Theoretical"]) != str and type(df_mean[column].loc["Theoretical"]) != list:
             limit1   = df_mean[column].loc["Theoretical"] - df_mean[column].loc["STD-"]
             limit2   = df_mean[column].loc["Theoretical"] + df_mean[column].loc["STD+"]
             df_weird = df_ids[[column,"IDs"]][(df_ids[column] < limit1) | (df_ids[column] > limit2)]
@@ -226,14 +225,18 @@ def check_especifications(df_ids, df_mean, labels, filename=""):
                 print('\033[91m'+"ERROR (x%i) "%(len(df_weird))+'\033[0m', file = f)
                 print(df_weird)
                 print(df_weird, file = f)
-        if (df_mean[column].loc["Theoretical"]) != None and type(df_mean[column].loc["Theoretical"]) == list:
+        if (df_mean[column].loc["Theoretical"]) != None and type(df_mean[column].loc["Theoretical"]) == list or type(df_mean[column].loc["Theoretical"]) == str:
             print("Especifications differ for each index in column %s: "%(column))
-            if filename != "": print("Especifications differ for each index in column %s: "%(column), file = f)
+            #transform this list of string into a list of floats removing the brackets and using the commas as separators
+            df_mean[column].loc["Theoretical"] = [float(x) for x in df_mean[column].loc["Theoretical"].replace("[","").replace("]","").split(",")]
+            df_mean[column].loc["STD-"] = [float(x) for x in df_mean[column].loc["STD-"].replace("[","").replace("]","").split(",")]
+            df_mean[column].loc["STD+"] = [float(x) for x in df_mean[column].loc["STD+"].replace("[","").replace("]","").split(",")]
 
+            if filename != "": print("Especifications differ for each index in column %s: "%(column), file = f)
             index = list(set(df_ids.index)); index.sort()
             for i, idx in enumerate(index):
-                limit1   = df_mean[column].loc["Theoretical"][i] - df_mean[column].loc["STD-"][i]
-                limit2   = df_mean[column].loc["Theoretical"][i] + df_mean[column].loc["STD+"][i]
+                limit1   = float(df_mean[column].loc["Theoretical"][i]) - float(df_mean[column].loc["STD-"][i])
+                limit2   = float(df_mean[column].loc["Theoretical"][i]) + float(df_mean[column].loc["STD+"][i])
                 df_weird = df_ids.loc[idx][[column,"IDs"]][(df_ids.loc[idx][column] < limit1) | (df_ids.loc[idx][column] > limit2)]
 
                 print("\nLimits in column %s for index %s: (%0.2f-%0.2f) "%(column,idx,limit1,limit2))
@@ -302,7 +305,7 @@ import plotly.graph_objects as go
 
 def plotlytos(title, xlabel, ylabel, df, df_mean, column, colors, decimales=2, text_auto=True):
 
-    if type(df_mean[column]["Theoretical"]) != list:
+    if type(df_mean[column]["Theoretical"]) != list or type(df_mean[column]["Theoretical"]) == str:
         th  = df_mean[column]["Theoretical"];  stdp = df_mean[column]["STD+"]; stdm = df_mean[column]["STD-"]
         exp = df_mean[column]["Experimental"]; maxs = df_mean[column]["Max"];  mins = df_mean[column]["Min"]
 
@@ -328,6 +331,7 @@ def plotlytos(title, xlabel, ylabel, df, df_mean, column, colors, decimales=2, t
 
 
     else:
+        print("Especifications differ for each index in column %s: "%(column))
         df2plot = df_mean.explode([column])
         index = list(set(df.index)); index.sort()
         for col in range(len((df_mean[column]["Theoretical"]))):
