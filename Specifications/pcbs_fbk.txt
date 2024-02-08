@@ -1,4 +1,4 @@
 Diametro Taladro 1 (S1)	Posición Y S1	Posición X S1	Diametro Taladro 2 (S6)	Posición Y TS6	Posición X TS6	Planitud PCB	Anchura (media)	Anchura (maxima)	Longitud (media)	Longitud (maxima)	Longitud rebaje izquierdo	Anchura rebaje izquierdo	Longitud rebaje derecho	Anchura rebaje derecho	Distancia entre taladros
 2.4	2.38	4	2.4	2.38	4		8.0	8.0	119.75	119.75	4.25	2.25	4.25	2.25	115.36
-0.1	0.1	0.1	0.1	0.1	0.1		0.2	0.2	0.35	0.35	0.1	0.1	0.1	0.1	0.1
-0.1	0.1	0.1	0.1	0.1	0.1		0.2	0.2	0.1	0.1	0.1	0.1	0.1	0.1	0.1
+0.1	0.1	0.1	0.1	0.1	0.1		0.1	0.1	0.35	0.35	0.1	0.1	0.1	0.1	0.1
+0.1	0.1	0.1	0.1	0.1	0.1		0.1	0.1	0.1	0.1	0.1	0.1	0.1	0.1	0.1
