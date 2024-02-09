@@ -83,7 +83,21 @@ def data2npy(folder,pcbs_labels,sipm_labels,hlat_labels,pins_labels,sipm_number=
         - sipm_number: number of SiPMs per PCB
         - pins_number: number of pins per PCB
         - mode: number of bunches of 6xSiPMs stored in each .xlsx file
-        - distances: dictionary with the distances between the measurements (i.e. {"pcbs":197,"sipm":8,"pina":5,"pinr":24})
+        - distances: dictionary with the distances between the measurements:
+            - pcb_header: distance between the header and the first measurement of the PCBs
+            - anv_header: distance between the header and the first measurement of the SiPMs/pins in the front of the PCBs
+            - rev_header: distance between the header and the first measurement of the pins in the back of the PCBs
+            - lat_header: distance between the header and the first measurement of the lateral heights
+            - row_pcbs: distance between the measurements of the PCBs
+            - row_sipm: distance between the measurements of the SiPMs
+            - row_pina: distance between the measurements of the pins in the front of the PCBs
+            - row_pinr: distance between the measurements of the pins in the back of the PCBs
+            - row_hlat: distance between the measurements of the lateral heights
+            - col_pcbs: column where the measurements of the PCBs are stored
+            - col_sipm: column where the measurements of the SiPMs are stored
+            - col_pina: column where the measurements of the pins in the front of the PCBs are stored
+            - col_pinr: column where the measurements of the pins in the back of the PCBs are stored
+            - col_hlat: 1st column where the measurements of the lateral heights are stored
         - debug: if True, it will print the values of the cells in the .xlsx files
     Returns:
         5 arrays with columns for each variable and rows for each measurement:
@@ -132,39 +146,36 @@ def data2npy(folder,pcbs_labels,sipm_labels,hlat_labels,pins_labels,sipm_number=
         for m in range(mode): serial_number.append([int(worksheet_anv.cell(2+m,20).value)])
         serial_number = list(np.concatenate(serial_number).flat)
 
-        ### FROM HERE ONWARDS, THE CONFIGURATION IS HARD-CODED DEPENDS ON THE EXCEL YOU ARE USING###
         # PCB #
         if debug: print('\033[96m'+"\nPCB"+'\033[0m')
         for l in np.arange(len(pcbs_labels)):    # Etiquetas x16
             for m in range(mode):                # Entries in each file
-                row = distances["pcb_header"]+l+m*distances["row_pcbs"]
-                col = distances["col_pcbs"]
+                row = distances["pcb_header"]+l+m*distances["row_pcbs"] # 3+l(ETIQUETA(0-16))+m*197(SEPARACION ENTRE MEDIDAS)
+                col = distances["col_pcbs"] # default column 11
                 val = float(worksheet_anv.cell(row,col).value) #cell allocation in xlsx file
                 if debug: print("(row,col): (%i,%i) ;  value: %.2f"%(row,col,val))
                 pcbs_values[n*mode+m,l] = val 
-               #pcbs_values[0-(names*mode*#LABELS),0-16] = cell(COLUMNA: 3+l(ETIQUETA(0-16))+m*197(SEPARACION ENTRE MEDIDAS), FILA: 11)
         pcbs_ids.append([str(names[n])+"_ID"+str(sn) for sn in serial_number])
 
         # SiPMs #
         if debug: print('\033[96m'+"\nSiPMs"+'\033[0m')
         for l in np.arange(len(sipm_labels)):    # Etiquetas x6
-            for m in range(mode): 
+            for m in range(mode):                # Entries in each file
                 for j in np.arange(sipm_number): # SiPMs x6
-                    row = distances["pcb_header"]+l+j*(distances["anv_header"]+len(sipm_labels))+m*distances["row_sipm"]
-                    col = distances["col_sipm"]
+                    row = distances["pcb_header"]+l+j*(distances["anv_header"]+len(sipm_labels))+m*distances["row_sipm"] # 3+l(ETIQUETA(0-6))+j*8(DISTANCIA ENTRE SIPMS)+m*197(SEPARACION ENTRE MEDIDAS)
+                    col = distances["col_sipm"]  # default column 14
                     val = float(worksheet_anv.cell(row,col).value) #cell allocation in xlsx file
                     if debug: print("(row,col): (%i,%i) ;  value: %.2f"%(row,col,val))
                     sipm_values[j+m*sipm_number+n*(sipm_number*(mode-1)+sipm_number),l] = val
-                   #sipm_values[0-(names*mode*#SIPMS*#LABELS),0-6] = cell(COLUMNA: 3+l(ETIQUETA(0-6))+j*8(DISTANCIA ENTRE SIPMS)+m*197(SEPARACION ENTRE MEDIDAS), FILA: 14)
         sipm_ids.append([str(names[n])+"_ID"+str(sn) for sn in [i for i in serial_number for j in range(sipm_number)]])
 
         # Alturas laterales #
-        if "workbooks_lat" in locals() and hlat_labels != []:
+        if "workbooks_lat" in locals() and hlat_labels != []: # Si hay alturas laterales
             print('\033[96m'+"\nLateral heights found! Storing them to plot"+'\033[0m')
-            for l in np.arange(len(hlat_labels)):
-                r = n*(sipm_number*mode)
-                for m in range(mode):
-                    for j in np.arange(sipm_number):
+            for l in np.arange(len(hlat_labels)):    # Etiquetas x4
+                r = n*(sipm_number*mode)             # Counter for flatten rows
+                for m in range(mode):                # Entries in each file
+                    for j in np.arange(sipm_number): # SiPMs x6
                         row = distances["lat_header"]+m*distances["row_hlat"]+j
                         col = distances["col_hlat"] + l
                         val = float(worksheet_lat.cell(row,col).value) #cell allocation in xlsx file
@@ -179,24 +190,22 @@ def data2npy(folder,pcbs_labels,sipm_labels,hlat_labels,pins_labels,sipm_number=
         for l in np.arange(len(pins_labels)):    # Etiquetas x3
             for m in range(mode):                # Entries in each file
                 for j in np.arange(pins_number): # Pins x8
-                    row = distances["pcb_header"]+l+j*(distances["anv_header"]+len(pins_labels))+m*distances["row_pina"]
-                    col = distances["col_pina"]
+                    row = distances["pcb_header"]+l+j*(distances["anv_header"]+len(pins_labels))+m*distances["row_pina"] # 3+l(ETIQUETA(0-3))+j*5(DISTANCIA ENTRE PINS)+m*197(SEPARACION ENTRE MEDIDAS)
+                    col = distances["col_pina"]  # default column 17
                     val = float(worksheet_anv.cell(row,col).value) #cell allocation in xlsx file
                     if debug: print("(row,col): (%i,%i) ;  value: %.2f"%(row,col,val))
                     pins_values_anv[j+m*pins_number+n*(pins_number*(mode-1)+pins_number),l] = val
-                   #pins_values_anv[0-(names*mode**#PINS*#LABELS),0-8] = cell(COLUMNA: 3+l(ETIQUETA(0-3))+j*5(DISTANCIA ENTRE PINS)+m*197(SEPARACION ENTRE MEDIDAS), FILA: 17)
         pins_anv_ids.append([str(names[n])+"_ID"+str(sn) for sn in [i for i in serial_number for j in range(pins_number)]])
 
         # Pins reverso #
         if debug: print('\033[96m'+"\nPins reverso"+'\033[0m')
         for m in range(mode):                    # Entries in each file
             for j in np.arange(pins_number):     # Pins x8
-                row = distances["pcb_header"]+j+m*distances["row_pinr"]
-                col = distances["col_pinr"]
+                row = distances["pcb_header"]+j+m*distances["row_pinr"] # 3+l(ETIQUETA(0-3))+j*5(DISTANCIA ENTRE PINS)+m*197(SEPARACION ENTRE MEDIDAS)
+                col = distances["col_pinr"] # default column 11
                 val = float(worksheet_rev.cell(row,col).value) #cell allocation in xlsx file # Etiqueta x1 (sin loop) REVERSO
                 if debug: print("(row,col): (%i,%i) ;  value: %.2f"%(row,col,val))
                 pins_values_rev[j+m*pins_number+n*(pins_number*(mode-1)+pins_number),0] = val
-               #pins_values_rev[0-(names*mode*#PINS)] = cell(COLUMNA: 3+l(ETIQUETA(0-6))+j(0-8 pins)+m*24(SEPARACION ENTRE MEDIDAS), FILA: 11)
         pins_rev_ids.append([str(names[n])+"_ID"+str(sn) for sn in [i for i in serial_number for j in range(pins_number)]])
 
     pcbs_values[:,-1]     = list(np.concatenate(pcbs_ids).flat)
@@ -225,13 +234,13 @@ def sanity_check(df_values,values):
         print("You have repeated rows")
         aux = []; resta = []
         for i, element in enumerate(np.where(df_values.duplicated())[0]):
-                for j,y in enumerate(values):
-                        where_array = np.where(values[element] == y)[0]
-                        try: 
-                                if len(where_array) == len(values[element]): 
-                                        if j != element: aux.append((element,j)) 
-                        except TypeError: 
-                               if j != element: aux.append((element,j))
+            for j,y in enumerate(values):
+                where_array = np.where(values[element] == y)[0]
+                try: 
+                    if len(where_array) == len(values[element]): 
+                            if j != element: aux.append((element,j)) 
+                except TypeError: 
+                    if j != element: aux.append((element,j))
 
         for a in aux: resta.append(abs(a[0]-a[1]))
         resta.sort()
