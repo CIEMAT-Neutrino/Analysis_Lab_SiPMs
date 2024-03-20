@@ -17,7 +17,7 @@ plt.rc('axes.formatter', useoffset=False) # Scientific notation in axes ticks
 ############################## DATA ###############################
 ###################################################################
 
-def df_display(values,labels, name,index="",terminal_output=False,save=False):
+def df_display(values,labels, name,index="",terminal_output=False,save=False,save_path=None):
     '''
     Function to display the values in a dataframe.
     Args:
@@ -33,8 +33,13 @@ def df_display(values,labels, name,index="",terminal_output=False,save=False):
     
     if index == "":  index=np.arange(len(values))
     df = pd.DataFrame(values, columns=labels, index=index)
-    if save: print('\033[92m'+"\n Saving file ../fit_data/df_"+name+".txt"+'\033[0m'); df.to_csv('../fit_data/df_'+name+'.txt', sep=" ", quoting=csv.QUOTE_NONE, escapechar=" ")
-    if terminal_output: print("\n--------- %s ---------"%name); display(df)
+    if save: 
+        if save_path == None: save_path = "../fit_data/"
+        if not os.path.exists(save_path): os.makedirs(save_path)
+        print('\033[92m'+"\n Saving file "+save_path+"df_"+name+".txt"+'\033[0m'); df.to_csv(save_path+'/df_'+name+'.txt', sep="\t")
+    if terminal_output: 
+        try: print("\n--------- %s ---------"%name); display(df)
+        except NameError: print(df)
     return df 
 
 def npy2df(df, per_label=[]):
@@ -110,12 +115,15 @@ def data2npy(folder,pcbs_labels,sipm_labels,hlat_labels,pins_labels,sipm_number=
 
     print('\033[93m'+"\nWARNING: the configuration for the xlsx is hard-coded, any change in the naming or how information is distributed in the cells WILL NEED to be CHANGED in the function"+'\033[0m')
     
-    names           = os.listdir(folder)
-    pcbs_values     = np.empty([len(names)*mode,             len(pcbs_labels)+1], dtype=object) #solo anverso
-    sipm_values     = np.empty([sipm_number*len(names)*mode, len(sipm_labels)+1], dtype=object) #solo anverso
-    hlat_values     = np.empty([sipm_number*len(names)*mode, len(hlat_labels)+1], dtype=object) #solo altura pines ESPECIAL FBK
-    pins_values_anv = np.empty([pins_number*len(names)*mode, len(pins_labels)+1], dtype=object) #solo anverso
-    pins_values_rev = np.empty([pins_number*len(names)*mode, 2], dtype=object)                  #solo reverso/solo altura pines
+    names = os.listdir(folder)
+    if 'fit_data' in names: names.remove('fit_data')
+    if 'images'   in names: names.remove('images')
+    
+    pcbs_values     = np.empty([len(names)*mode,             len(pcbs_labels)+2], dtype=object) #solo anverso
+    sipm_values     = np.empty([sipm_number*len(names)*mode, len(sipm_labels)+2], dtype=object) #solo anverso
+    hlat_values     = np.empty([sipm_number*len(names)*mode, len(hlat_labels)+2], dtype=object) #solo altura pines ESPECIAL FBK
+    pins_values_anv = np.empty([pins_number*len(names)*mode, len(pins_labels)+2], dtype=object) #solo anverso
+    pins_values_rev = np.empty([pins_number*len(names)*mode, 3], dtype=object)                  #solo reverso/solo altura pines
     
     names_sipms = []
     for i in range(sipm_number): names_sipms.append("SiPM #%i"%(i+1))
@@ -129,6 +137,7 @@ def data2npy(folder,pcbs_labels,sipm_labels,hlat_labels,pins_labels,sipm_number=
     else:         print("\n[INFO] You have entered \"mode=%i\", meaning that in each .xlsx you stored %i bunches of 6xSiPMs"%(mode,mode))
 
     pcbs_ids = []; sipm_ids = []; pins_anv_ids = []; pins_rev_ids = []; hlat_ids = []
+    pcbs_dat = []; sipm_dat = []; pins_anv_dat = []; pins_rev_dat = []; hlat_dat = []
     for n in np.arange(len(names)): # Distintos archivos --> Placas PCBs
         if debug: print("\n----- LOCATION:", folder + names[n] + '/' + names[n], "-----")
         # Open the workbook and define the worksheet:
@@ -156,6 +165,7 @@ def data2npy(folder,pcbs_labels,sipm_labels,hlat_labels,pins_labels,sipm_number=
                 if debug: print("(row,col): (%i,%i) ;  value: %.2f"%(row,col,val))
                 pcbs_values[n*mode+m,l] = val 
         pcbs_ids.append([str(names[n])+"_ID"+str(sn) for sn in serial_number])
+        pcbs_dat.append([str(folder.split("/")[-2]) for sn in serial_number])
 
         # SiPMs #
         if debug: print('\033[96m'+"\nSiPMs"+'\033[0m')
@@ -168,6 +178,7 @@ def data2npy(folder,pcbs_labels,sipm_labels,hlat_labels,pins_labels,sipm_number=
                     if debug: print("(row,col): (%i,%i) ;  value: %.2f"%(row,col,val))
                     sipm_values[j+m*sipm_number+n*(sipm_number*(mode-1)+sipm_number),l] = val
         sipm_ids.append([str(names[n])+"_ID"+str(sn) for sn in [i for i in serial_number for j in range(sipm_number)]])
+        sipm_dat.append([str(folder.split("/")[-2]) for sn in [i for i in serial_number for j in range(sipm_number)]])
 
         # Alturas laterales #
         if "workbooks_lat" in locals() and hlat_labels != []: # Si hay alturas laterales
@@ -183,6 +194,8 @@ def data2npy(folder,pcbs_labels,sipm_labels,hlat_labels,pins_labels,sipm_number=
                         hlat_values[r,l] = val
                         r += 1
             hlat_ids.append([str(names[n])+"_ID"+str(sn) for sn in [i for i in serial_number for j in range(sipm_number)]])
+            hlat_dat.append([str(folder.split("/")[-2]) for sn in [i for i in serial_number for j in range(sipm_number)]])
+
         if "workbooks_lat" in locals() and hlat_labels == []: print('\033[91m'+"ERROR: You have entered a file with lateral heights but you have not specified the labels"+'\033[0m')
         
         # Pins anverso #
@@ -196,6 +209,7 @@ def data2npy(folder,pcbs_labels,sipm_labels,hlat_labels,pins_labels,sipm_number=
                     if debug: print("(row,col): (%i,%i) ;  value: %.2f"%(row,col,val))
                     pins_values_anv[j+m*pins_number+n*(pins_number*(mode-1)+pins_number),l] = val
         pins_anv_ids.append([str(names[n])+"_ID"+str(sn) for sn in [i for i in serial_number for j in range(pins_number)]])
+        pins_anv_dat.append([str(folder.split("/")[-2]) for sn in [i for i in serial_number for j in range(pins_number)]])
 
         # Pins reverso #
         if debug: print('\033[96m'+"\nPins reverso"+'\033[0m')
@@ -207,12 +221,18 @@ def data2npy(folder,pcbs_labels,sipm_labels,hlat_labels,pins_labels,sipm_number=
                 if debug: print("(row,col): (%i,%i) ;  value: %.2f"%(row,col,val))
                 pins_values_rev[j+m*pins_number+n*(pins_number*(mode-1)+pins_number),0] = val
         pins_rev_ids.append([str(names[n])+"_ID"+str(sn) for sn in [i for i in serial_number for j in range(pins_number)]])
+        pins_rev_dat.append([str(folder.split("/")[-2]) for sn in [i for i in serial_number for j in range(pins_number)]])
 
-    pcbs_values[:,-1]     = list(np.concatenate(pcbs_ids).flat)
-    sipm_values[:,-1]     = list(np.concatenate(sipm_ids).flat)
-    pins_values_anv[:,-1] = list(np.concatenate(pins_anv_ids).flat)
-    pins_values_rev[:,-1] = list(np.concatenate(pins_rev_ids).flat)
-    if hlat_labels != []: hlat_values[:,-1] = list(np.concatenate(hlat_ids).flat)
+    pcbs_values[:,-2]     = list(np.concatenate(pcbs_ids).flat)
+    pcbs_values[:,-1]     = list(np.concatenate(pcbs_dat).flat)
+    sipm_values[:,-2]     = list(np.concatenate(sipm_ids).flat)
+    sipm_values[:,-1]     = list(np.concatenate(sipm_dat).flat)
+    pins_values_anv[:,-2] = list(np.concatenate(pins_anv_ids).flat)
+    pins_values_anv[:,-1] = list(np.concatenate(pins_anv_dat).flat)
+    pins_values_rev[:,-2] = list(np.concatenate(pins_rev_ids).flat)
+    pins_values_rev[:,-1] = list(np.concatenate(pins_rev_dat).flat)
+    if hlat_labels != []: hlat_values[:,-2] = list(np.concatenate(hlat_ids).flat)
+    if hlat_labels != []: hlat_values[:,-1] = list(np.concatenate(hlat_dat).flat)
 
     print('\033[96m'+"\nCHECK DIMENSIONS:"+'\033[0m')
     print("Files x Bunches:",len(pcbs_values))
@@ -221,7 +241,7 @@ def data2npy(folder,pcbs_labels,sipm_labels,hlat_labels,pins_labels,sipm_number=
     if hlat_labels != []: print("HLAT:",len(hlat_values))
     print("PIN_ANV:",len(pins_values_anv))
     print("PIN_REV:",len(pins_values_rev))
-
+   
     return pcbs_values, sipm_values, pins_values_rev, pins_values_anv, hlat_values
 
 def sanity_check(df_values,values):
@@ -351,17 +371,22 @@ import plotly.express       as px
 import plotly.offline       as pyoff
 import plotly.graph_objects as go
 
-def plotlytos(title, xlabel, ylabel, df, df_mean, column, colors, decimales=2, text_auto=True):
+def plotlytos(title, xlabel, ylabel, df, df_mean, column, colors, decimales=2, text_auto=True,save=False,save_path=None):
 
     if type(df_mean[column]["Theoretical"]) != list or type(df_mean[column]["Theoretical"]) == str:
         th  = df_mean[column]["Theoretical"];  stdp = df_mean[column]["STD+"]; stdm = df_mean[column]["STD-"]
         exp = df_mean[column]["Experimental"]; maxs = df_mean[column]["Max"];  mins = df_mean[column]["Min"]
 
-        fig = px.histogram(df, template="presentation", x=column, width=900, height=600, hover_data=[column, "IDs"],text_auto=text_auto)
-        histogram_trace = fig.data[0]; hist_values, _ = np.histogram(histogram_trace.x); max_height = np.max(hist_values)
-        vline = 1.8*max_height
-        # if "burr" in title: vline = 0.6*max_height
-        
+        # Compute the histogram
+        hist_values, bin_edges = np.histogram(df[column], bins=10)
+        bin_centers = (bin_edges[:-1] + bin_edges[1:]) / 2
+        max_height = np.max(hist_values)
+        vline = 1.5*max_height
+
+        # Create the histogram using go.Bar
+        fig = go.Figure(data=[go.Bar(x=bin_centers, y=hist_values,name="Data",showlegend=False)])
+        fig.update_layout(barmode="overlay",template="presentation", width=900, height=600,bargap=0)
+
         if text_auto: fig.update_traces(hovertemplate = str(column) + ': %{x}' + '<br>' + "IDs: "+ df["IDs"] + '<extra></extra>')
         fig.add_trace(go.Scatter(x=[None],      y = [None],    mode="lines", line=dict(dash="dash",color="orange", width=0), name="Min: %s mm"%str(np.round(mins,decimales))))
         fig.add_trace(go.Scatter(x=[None],      y = [None],    mode="lines", line=dict(dash="dash",color="orange", width=0), name="Max: %s mm"%str(np.round(maxs,decimales))))
@@ -371,13 +396,22 @@ def plotlytos(title, xlabel, ylabel, df, df_mean, column, colors, decimales=2, t
         if "weld" not in title: fig.add_trace(go.Scatter(x=[th-stdm]*2, y = [0,vline], mode="lines", line=dict(dash="dash",color=colors[1],width=4), name="TOL-: %s mm"%str(np.round(stdm,decimales))))
         custom_plotly_layout(fig, xaxis_title=xlabel, yaxis_title=ylabel, title=title)
 
-        xmin = 0.995*(th-stdm); xmax = 1.02*(th+stdp)
-        if th-stdm > min(df[column]): xmin=0.99*min(df[column])
-        if th+stdp < max(df[column]): xmax=1.04*max(df[column])
+        low=min(df[column])/np.mean(df[column])
+        hig=max(df[column])/np.mean(df[column])
+
+        xmin = abs(low)*min(df[column])
+        xmax = abs(hig)*max(df[column])
+        if abs(xmin) > abs(th-stdp): xmin = abs(low)*(th-stdp)
+        if abs(xmax) < abs(th+stdp): xmax = abs(hig)*(th+stdp)
         fig.update_layout(xaxis_range=[xmin, xmax])
         fig.update_layout(yaxis_range=[0, vline])
-
-
+        if save: 
+            if save_path == None: save_path = "../images/"
+            if not os.path.exists(save_path): os.makedirs(save_path)
+            print('\033[92m'+"\n Saving file "+save_path+title+".png"+'\033[0m'); 
+            fig.write_image(save_path+str(title)+".png")
+            # pyoff.plot(fig, filename=save_path+"/df_"+title+".html", auto_open=False)
+    
     else:
         print("Especifications differ for each index in column %s: "%(column))
         df2plot = df_mean.explode([column])
@@ -386,10 +420,15 @@ def plotlytos(title, xlabel, ylabel, df, df_mean, column, colors, decimales=2, t
             th  = df2plot[column]["Theoretical"][col];  stdp = df2plot[column]["STD+"][col]; stdm = df2plot[column]["STD-"][col]
             exp = df2plot[column]["Experimental"][col]; maxs = df2plot[column]["Max"][col];  mins = df2plot[column]["Min"][col]
 
-            fig = px.histogram(df.loc[index[col]], x=column, template="presentation",width=900, height=600, hover_data=[df.loc[index[col]][column], df.loc[index[col]]["IDs"]],text_auto=text_auto)
-            histogram_trace = fig.data[0]; hist_values, hist_edges = np.histogram(histogram_trace.x); max_height = np.max(hist_values)
-            vline = 1.8*max_height
-            # if "burr" in title: vline = 0.6*max_height
+            # Compute the histogram
+            hist_values, bin_edges = np.histogram(df.loc[index[col]][column])
+            bin_centers = (bin_edges[:-1] + bin_edges[1:]) / 2
+            max_height = np.max(hist_values)
+            vline = 1.5*max_height
+
+            # Create the histogram using go.Bar
+            fig = go.Figure(data=[go.Bar(x=bin_centers, y=hist_values,name="Data",showlegend=False)]) #hover_data=[column, "IDs"], text_auto=text_auto
+            fig.update_layout(barmode="overlay",template="presentation", width=900, height=600,bargap=0)
 
             if text_auto: fig.update_traces(hovertemplate = str(column) + ': %{x}' + '<br>' + "IDs: "+ df.loc[index[col]]["IDs"] + '<extra></extra>')
             fig.add_trace(go.Scatter(x=[None],      y = [None],    mode="lines", line=dict(dash="dash",color="orange", width=0), name="Max: %s mm"%str(np.round(maxs,decimales))))
@@ -398,14 +437,23 @@ def plotlytos(title, xlabel, ylabel, df, df_mean, column, colors, decimales=2, t
             fig.add_trace(go.Scatter(x=[th+stdp]*2, y = [0,vline], mode="lines", line=dict(dash="dash",color=colors[1],width=4), name="TOL+: %s mm"%str(np.round(stdp,decimales))))
             fig.add_trace(go.Scatter(x=[th]*2,      y = [0,vline], mode="lines", line=dict(dash="dash",color=colors[0],width=4), name="TH:   %s mm"%str(np.round(th,decimales))))
             fig.add_trace(go.Scatter(x=[th-stdm]*2, y = [0,vline], mode="lines", line=dict(dash="dash",color=colors[1],width=4), name="TOL-: %s mm"%str(np.round(stdm,decimales))))
-            custom_plotly_layout(fig, xaxis_title=xlabel, yaxis_title=ylabel, title=str(index[col])+ " - " +title + " (L%i)"%(col+1)).show()
+            custom_plotly_layout(fig, xaxis_title=xlabel, yaxis_title=ylabel, title=str(index[col])+ " - " +title + " (L%i)"%(col+1))
             
-            xmin = 0.995*(th-stdm); xmax = 1.02*(th+stdp)
-            if th-stdm > min(df[column]): xmin=0.99*min(df[column])
-            if th+stdp < max(df[column]): xmax=1.04*max(df[column])
+            low=min(df.loc[index[col]][column])/np.mean(df.loc[index[col]][column])
+            hig=max(df.loc[index[col]][column])/np.mean(df.loc[index[col]][column])
+
+            xmin = abs(low)*min(df.loc[index[col]][column])
+            xmax = abs(hig)*max(df.loc[index[col]][column])
+            if abs(xmin) > abs(th-stdp): xmin = abs(low)*(th-stdp)
+            if abs(xmax) < abs(th+stdp): xmax = abs(hig)*(th+stdp)
             fig.update_layout(xaxis_range=[xmin, xmax])
             fig.update_layout(yaxis_range=[0, vline])
 
+            if save: 
+                if save_path == None: save_path = "../images/"
+                if not os.path.exists(save_path): os.makedirs(save_path)
+                print('\033[92m'+"\n Saving file "+save_path+str(index[col])+ " - " +title + " (L%i)"%(col+1)+".png"+'\033[0m'); 
+                fig.write_image(save_path+str(index[col])+ " - " +title + " (L%i)"%(col+1)+".png")
 
     return fig
 
@@ -415,11 +463,6 @@ def custom_legend_name(fig_px,new_names):
     return fig_px
 
 def custom_plotly_layout(fig_px, xaxis_title="", yaxis_title="", title="",barmode="stack"):
-    # fig_px.update_layout( updatemenus=[ dict( buttons=list([ dict(args=[{"xaxis.type": "linear", "yaxis.type": "linear"}], label="LinearXY", method="relayout"),
-    #                                                          dict(args=[{"xaxis.type": "log", "yaxis.type": "log"}],       label="LogXY",    method="relayout"),
-    #                                                          dict(args=[{"xaxis.type": "linear", "yaxis.type": "log"}],    label="LogY",     method="relayout"),
-    #                                                          dict( args=[{"xaxis.type": "log", "yaxis.type": "linear"}],   label="LogX",     method="relayout") ]),
-    #                       direction="down", pad={"r": 10, "t": 10}, showactive=True, x=-0.1, xanchor="left", y=1.5, yanchor="top" ) ] )
     fig_px.update_layout( template="presentation", title=title, xaxis_title=xaxis_title, yaxis_title=yaxis_title, barmode=barmode,
                    font=dict(family="serif"), legend_title_text='', legend = dict(yanchor="top", xanchor="right", x = 0.99), showlegend=True)
     fig_px.update_xaxes(showline=True,mirror=True,zeroline=False)
