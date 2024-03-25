@@ -1,4 +1,4 @@
 Altura superficie media	Altura superficie maxima	Altura reverso media	Altura reverso maxima
-2.10	2.10	3.70	3.70
-0.20	0.20	0.36	0.36
-0.20	0.20	0.36	0.36
+1.83	1.83	3.43	3.43
+0.22	0.22	0.38	0.38
+0.22	0.22	0.38	0.38
