@@ -1,0 +1,26 @@
+'HPK':
+  pcbs_labels: ['Diametro Taladro 1 (S1)', 'Posición Y S1', 'Posición X S1', 'Diametro Taladro 2 (S6)', 'Posición Y TS6',
+                  'Posición X TS6', 'Planitud PCB','Anchura (media)', 'Anchura (maxima)', 'Longitud (media)',
+                  'Longitud (maxima)', 'Longitud rebaje izquierdo', 'Anchura rebaje izquierdo', 'Longitud rebaje derecho',
+                  'Anchura rebaje derecho', 'Distancia entre taladros']
+  sipm_labels: ['Anchura', 'Longitud', 'Posición X', 'Posición Y', 'Planitud', 'Altura']
+  pina_labels: ['Posición X', 'Posición Y', 'Altura Pin'] #pin anverso
+  pinr_labels: ['Altura Pin'] #pin reverso
+  hlat_labels: []
+  distances  : {"pcb_header":3,"anv_header":2,"rev_header":2,"lat_header":2,
+                        "row_pcbs":197,"row_sipm":197,"row_pina":197,"row_pinr":24,"row_hlat":24,
+                        "col_pcbs":11, "col_sipm":14, "col_pina":17, "col_pinr":11,"col_hlat":10}
+
+'FBK':
+  pcbs_labels: ['Diametro Taladro 1 (S1)', 'Posición Y S1', 'Posición X S1', 'Diametro Taladro 2 (S6)', 'Posición Y TS6',
+                        'Posición X TS6', 'Planitud PCB','Anchura (media)', 'Anchura (maxima)', 'Longitud (media)',
+                        'Longitud (maxima)', 'Longitud rebaje izquierdo', 'Anchura rebaje izquierdo', 'Longitud rebaje derecho',
+                        'Anchura rebaje derecho', 'Distancia entre taladros']
+  sipm_labels: ['Anchura', 'Longitud', 'Posición X', 'Posición Y', 'Planitud', 'Altura','Anchura caja', 'Longitud caja',
+                        'Posicion X caja', 'Posicion Y caja']
+  pina_labels: ['Posición X', 'Posición Y', 'Altura Pin'] #pin anverso
+  pinr_labels: ['Altura Pin','Planitud'] #pin reverso
+  hlat_labels: ['Altura superficie media','Altura superficie maxima','Altura reverso media','Altura reverso maxima']
+  distances  : {"pcb_header":3,"anv_header":2,"rev_header":5,"lat_header":4,
+                        "row_pcbs":257,"row_sipm":257,"row_pina":257,"row_pinr":27,"row_hlat":48,
+                        "col_pcbs":11, "col_sipm":14, "col_pina":17, "col_pinr":11,"col_hlat":10}

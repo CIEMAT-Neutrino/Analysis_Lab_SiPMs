@@ -72,7 +72,7 @@ def npy2df(df, per_label=[]):
             mins.append(df[label].min(axis=0))
     return mean, stds, maxs, mins
 
-def data2npy(folder,pcbs_labels,sipm_labels,hlat_labels,pins_labels,sipm_number=6,pins_number=8,mode=1,
+def data2npy(folder,pcbs_labels,sipm_labels,hlat_labels,pina_labels,pinr_labels,sipm_number=6,pins_number=8,mode=1,
              distances={"pcb_header":3,"anv_header":2,"rev_header":2,"lat_header":4,
                         "row_pcbs":197,"row_sipm":197,"row_pina":197,"row_pinr":24,"row_hlat":24,
                         "col_pcbs":11, "col_sipm":14, "col_pina":17, "col_pinr":11,"col_hlat":10}, debug=False):
@@ -84,7 +84,8 @@ def data2npy(folder,pcbs_labels,sipm_labels,hlat_labels,pins_labels,sipm_number=
         - pcbs_labels: list of the labels of the PCBs
         - sipm_labels: list of the labels of the SiPMs
         - hlat_labels: list of the labels of the lateral heights
-        - pins_labels: list of the labels of the pins
+        - pina_labels: list of the labels of the pins (front)
+        - pinr_labels: list of the labels of the pins (reverse)
         - sipm_number: number of SiPMs per PCB
         - pins_number: number of pins per PCB
         - mode: number of bunches of 6xSiPMs stored in each .xlsx file
@@ -122,8 +123,8 @@ def data2npy(folder,pcbs_labels,sipm_labels,hlat_labels,pins_labels,sipm_number=
     pcbs_values     = np.empty([len(names)*mode,             len(pcbs_labels)+2], dtype=object) #solo anverso
     sipm_values     = np.empty([sipm_number*len(names)*mode, len(sipm_labels)+2], dtype=object) #solo anverso
     hlat_values     = np.empty([sipm_number*len(names)*mode, len(hlat_labels)+2], dtype=object) #solo altura pines ESPECIAL FBK
-    pins_values_anv = np.empty([pins_number*len(names)*mode, len(pins_labels)+2], dtype=object) #solo anverso
-    pins_values_rev = np.empty([pins_number*len(names)*mode, 3], dtype=object)                  #solo reverso/solo altura pines
+    pins_values_anv = np.empty([pins_number*len(names)*mode, len(pina_labels)+2], dtype=object) #solo anverso
+    pins_values_rev = np.empty([pins_number*len(names)*mode, len(pinr_labels)+2], dtype=object) #solo reverso/solo altura pines
     
     names_sipms = []
     for i in range(sipm_number): names_sipms.append("SiPM #%i"%(i+1))
@@ -200,10 +201,10 @@ def data2npy(folder,pcbs_labels,sipm_labels,hlat_labels,pins_labels,sipm_number=
         
         # Pins anverso #
         if debug: print('\033[96m'+"\nPins anverso"+'\033[0m')
-        for l in np.arange(len(pins_labels)):    # Etiquetas x3
+        for l in np.arange(len(pina_labels)):    # Etiquetas x3
             for m in range(mode):                # Entries in each file
                 for j in np.arange(pins_number): # Pins x8
-                    row = distances["pcb_header"]+l+j*(distances["anv_header"]+len(pins_labels))+m*distances["row_pina"] # 3+l(ETIQUETA(0-3))+j*5(DISTANCIA ENTRE PINS)+m*197(SEPARACION ENTRE MEDIDAS)
+                    row = distances["pcb_header"]+l+j*(distances["anv_header"]+len(pina_labels))+m*distances["row_pina"] # 3+l(ETIQUETA(0-3))+j*5(DISTANCIA ENTRE PINS)+m*197(SEPARACION ENTRE MEDIDAS)
                     col = distances["col_pina"]  # default column 17
                     val = float(worksheet_anv.cell(row,col).value) #cell allocation in xlsx file
                     if debug: print("(row,col): (%i,%i) ;  value: %.2f"%(row,col,val))
@@ -213,13 +214,23 @@ def data2npy(folder,pcbs_labels,sipm_labels,hlat_labels,pins_labels,sipm_number=
 
         # Pins reverso #
         if debug: print('\033[96m'+"\nPins reverso"+'\033[0m')
-        for m in range(mode):                    # Entries in each file
-            for j in np.arange(pins_number):     # Pins x8
-                row = distances["pcb_header"]+j+m*distances["row_pinr"] # 3+l(ETIQUETA(0-3))+j*5(DISTANCIA ENTRE PINS)+m*197(SEPARACION ENTRE MEDIDAS)
-                col = distances["col_pinr"] # default column 11
-                val = float(worksheet_rev.cell(row,col).value) #cell allocation in xlsx file # Etiqueta x1 (sin loop) REVERSO
-                if debug: print("(row,col): (%i,%i) ;  value: %.2f"%(row,col,val))
-                pins_values_rev[j+m*pins_number+n*(pins_number*(mode-1)+pins_number),0] = val
+        for l in np.arange(len(pinr_labels)):    # Etiquetas x1(height) or x2 (planitud+height)
+            for m in range(mode):                # Entries in each file
+                for j in np.arange(pins_number): # Pins x8
+                    row = distances["rev_header"]+j+m*distances["row_pinr"] # 3+l(ETIQUETA(0-3))+j*5(DISTANCIA ENTRE PINS)+m*197(SEPARACION ENTRE MEDIDAS)
+                    col = distances["col_pinr"] # default column 11
+                    val_weird = None
+                    if l!=0 and j==0:
+                        row = row+pins_number
+                        val_weird = float(worksheet_rev.cell(row,col).value)
+                        val = val_weird
+                    if l!=0 and j!=0: 
+                        row = row+pins_number
+                        val = val_weird
+                    else:             val = float(worksheet_rev.cell(row,col).value) #cell allocation in xlsx file # Etiqueta x1 (sin loop) REVERSO
+                    if debug: print(f"(row,col): ({row},{col}) ;  value: {val}")
+                    # if debug: print("(row,col): (%i,%i) ;  value: %.2f"%(row,col,val))
+                    pins_values_rev[j+m*pins_number+n*(pins_number*(mode-1)+pins_number),l] = val
         pins_rev_ids.append([str(names[n])+"_ID"+str(sn) for sn in [i for i in serial_number for j in range(pins_number)]])
         pins_rev_dat.append([str(folder.split("/")[-2]) for sn in [i for i in serial_number for j in range(pins_number)]])
 
@@ -373,10 +384,10 @@ import plotly.graph_objects as go
 
 def plotlytos(title, xlabel, ylabel, df, df_mean, column, colors, decimales=2, text_auto=True,save=False,save_path=None):
 
+    df = df.dropna()
     if type(df_mean[column]["Theoretical"]) != list or type(df_mean[column]["Theoretical"]) == str:
         th  = df_mean[column]["Theoretical"];  stdp = df_mean[column]["STD+"]; stdm = df_mean[column]["STD-"]
         exp = df_mean[column]["Experimental"]; maxs = df_mean[column]["Max"];  mins = df_mean[column]["Min"]
-
         # Compute the histogram
         hist_values, bin_edges = np.histogram(df[column], bins=10)
         bin_centers = (bin_edges[:-1] + bin_edges[1:]) / 2
