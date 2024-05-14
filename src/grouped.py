@@ -184,13 +184,13 @@ for i in range(len(titles)):
     fig.write_image("../data/"+chosen_sipm+"/images/"+str(titles[i])+".png")
 
 # Pins ##
-titles = ['Pins - Position X (front)', 'Position Y (front)', 'Pins - weld height', 'Pins - Height']
-xlabel = ['Position [mm]', 'Position [mm]', 'Height [mm]', 'Height [mm]']
+titles = ['Pins - Position X (front)', 'Position Y (front)', 'Pins - weld height', 'Pins - Height', 'Pins - Flatness']
+xlabel = ['Position [mm]', 'Position [mm]', 'Height [mm]', 'Height [mm]', 'Flatness [mm]']
 ylabel = ['Nº Pins'] * len(titles)
-colums = ['Posición X', 'Posición Y', 'Altura Pin', 'Altura Pin']
+colums = ['Posición X', 'Posición Y', 'Altura Pin', 'Altura Pin', 'Planitud']
 colors = ["purple","orange","red"]
-df_raw = [df_pina_ids] * (len(titles)-1) + [df_pinr_ids]
-df_fin = [df_pina_all] * (len(titles)-1) + [df_pinr_all]
+df_raw = [df_pina_ids] * (len(format_config["pina_labels"])) + [df_pinr_ids] * (len(format_config["pinr_labels"]))
+df_fin = [df_pina_all] * (len(format_config["pina_labels"])) + [df_pinr_all] * (len(format_config["pinr_labels"]))
 
 for i in range(len(titles)): 
     fig = plotlytos(titles[i], xlabel[i], ylabel[i], df_raw[i], df_fin[i], colums[i],colors=colors,text_auto=False,
@@ -265,7 +265,7 @@ if write_xlsx:
                             "drop":[]
                             },
                     "df_pinr":{
-                            "headers":["Position","Heigth","ID","DATE_END_ANALYSIS"],
+                            "headers":["Position","Heigth","Flatness","ID","DATE_END_ANALYSIS"],
                             "drop":[]
                             },
                     "df_hlat":{
@@ -286,7 +286,7 @@ if write_xlsx:
             if "df_pcbs" in name: df.drop(df.columns[0], axis=1, inplace=True)
             df = df.apply(pd.to_numeric, errors='ignore')
             # print("BEFORE\n",df)
-            df = df.dropna(axis=1)
+            if "pinr" not in txt_file: df = df.dropna(axis=1)
             if config[name]["drop"] != []:
                 for col in config[name]["drop"]:
                     # print("DROPPING",col)

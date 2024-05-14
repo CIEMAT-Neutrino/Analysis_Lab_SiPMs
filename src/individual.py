@@ -203,8 +203,8 @@ for f,folder in enumerate(chosen_folders):
     ylabel = ['Nº Pins'] * len(titles)
     colums = ['Posición X', 'Posición Y', 'Altura Pin', 'Altura Pin', 'Planitud']
     colors = ["purple","orange","red"]
-    df_raw = [df_pina_ids] * (len(titles)-1) + [df_pinr_ids]
-    df_fin = [df_pina_all] * (len(titles)-1) + [df_pinr_all]
+    df_raw = [df_pina_ids] * (len(format_config["pina_labels"])) + [df_pinr_ids] * (len(format_config["pinr_labels"]))
+    df_fin = [df_pina_all] * (len(format_config["pina_labels"])) + [df_pinr_all] * (len(format_config["pinr_labels"]))
 
     for i in range(len(titles)): 
         fig = plotlytos(titles[i], xlabel[i], ylabel[i], df_raw[i], df_fin[i], colums[i],colors=colors,text_auto=False,
@@ -225,7 +225,7 @@ for f,folder in enumerate(chosen_folders):
         for i in range(len(titles)): 
             fig = plotlytos(titles[i], xlabel[i], ylabel[i], df_raw, df_fin, colums[i],colors=colors,decimales=2,text_auto=False,
                             save=True,save_path="../data/"+folder+"/images/")
-            # if show_plots: fig.show()
+            if show_plots: fig.show()
             fig.write_image("../data/"+folder+"/images/"+str(titles[i])+".png")
 
     del pcbs, sipm, pinr, pina
